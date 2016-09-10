@@ -45,6 +45,8 @@ public abstract class AdaptOnDemandAdaptableBindingAdapter<VM,
   private final @NonNull
   ExecutorService executorService;
 
+  private  AsyncTask<Void, Void, VM> mTask = null;
+
 
 
   //== Constructors ===========================================================
@@ -92,6 +94,18 @@ public abstract class AdaptOnDemandAdaptableBindingAdapter<VM,
 
   //== 'RecyclerView.Adapter' methods =========================================
 
+  /**
+   * To fix to eliminate duplicate tasks, set an instance one to null
+   * set the inner class to the instance and make sure to set
+   * PostExecute and onCancelled to null again per this SO question and
+   * answer:
+   *
+   * http://stackoverflow.com/questions/6645203/android%ADasynctask%ADavoid%ADmultiple%ADinstances%ADrunning5/5
+   *
+   *
+   * @param loadingViewHolder the loadingViewHolder
+   * @param position {@inheritDoc}
+   */
   @Override
   public void onBindViewHolder(@NonNull final VH loadingViewHolder,
                                int position) {
@@ -100,27 +114,37 @@ public abstract class AdaptOnDemandAdaptableBindingAdapter<VM,
 
     if (adapted == null) {
       // item not yet adapted. start task to make this view available
-      new AsyncTask<Void, Void, VM>() {
-        @Override
-        protected VM doInBackground(Void... params) {
-          if (adaptableViewModel.getViewModel() != null) {
-            // another task must have beat me to adapting. (the item was
-            // scrolled onto screen, I was created, the item was scrolled off
-            // and back on, another duplicate task was added to the top of the
-            // queue, that task finished, then I got executed.)
-            return adaptableViewModel.getViewModel();
+      if (mTask == null) {
+       mTask = new AsyncTask<Void, Void, VM>() {
+          @Override
+          protected VM doInBackground(Void... params) {
+            // Naming the AsyncTask via Xion's answer to this SO question:
+            // http://stackoverflow.com/questions/7585426/android%ADidentify%ADwhat%ADcode%ADan%ADasynctask%ADis%ADrunning2/2
+            Thread.currentThread().setName("Presenter (AsyncTask)");
+            if (adaptableViewModel.getViewModel() != null) {
+              // another task must have beat me to adapting. (the item was
+              // scrolled onto screen, I was created, the item was scrolled off
+              // and back on, another duplicate task was added to the top of the
+              // queue, that task finished, then I got executed.)
+              return adaptableViewModel.getViewModel();
+            }
+            // this could still be a duplicate, concurrent job. oh well.
+            return adaptableAdapter.adapt(adaptableViewModel);
           }
-          // this could still be a duplicate, concurrent job. oh well.
-          return adaptableAdapter.adapt(adaptableViewModel);
-        }
 
-        @Override
-        protected void onPostExecute(VM viewModel) {
-          // save the adapted model to the adaptableViewModel so it's available
-          // if it's requested again
-          adaptableViewModel.setViewModel(viewModel);
-        }
-      }.executeOnExecutor(executorService);
+          @Override
+          protected void onPostExecute(VM viewModel) {
+            // save the adapted model to the adaptableViewModel so it's available
+            // if it's requested again
+            adaptableViewModel.setViewModel(viewModel);
+            mTask = null;
+          }
+          @Override
+          protected void onCancelled(){
+            mTask = null;
+          }
+        }.executeOnExecutor(executorService);
+      }
     }
 
     // let implementation now do actual binding.

@@ -38,6 +38,8 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
   private final @NonNull
   ExecutorService executorService;
 
+  private  AsyncTask<Void, Void, VM> mTask = null;
+
 
   //== Constructors ===========================================================
 
@@ -86,7 +88,12 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
   //== 'RecyclerView.Adapter' methods =========================================
 
   /**
-   * So what happens in cae of a concurrent same task?
+   * To fix to eliminate duplicate tasks, set an instance one to null
+   * set the inner class to the instance and make sure to set
+   * PostExecute and onCancelled to null again per this SO question and
+   * answer:
+   *
+   * http://stackoverflow.com/questions/6645203/android%ADasynctask%ADavoid%ADmultiple%ADinstances%ADrunning5/5
    *
    *
    *
@@ -101,38 +108,52 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
     loadingViewHolder.setTag(adaptableViewModel);
 
     if (viewModel == null) {
-      // item not yet adapted. start task to make this view available
-      new AsyncTask<Void, Void, VM>() {
-        @Override
-        protected VM doInBackground(Void... params) {
-          if (adaptableViewModel.getViewModel() != null) {
-            // another task must have beat me to adapting. (the item was
-            // scrolled onto screen, I was created, the item was scrolled off
-            // and back on, another duplicate task was added to the top of the
-            // queue, that task finished, then I got executed.)
-            return adaptableViewModel.getViewModel();
-          }
-          // this could still be a duplicate, concurrent job. oh well.
+      if (mTask == null) {
+        // item not yet adapted. start task to make this view available
+       mTask = new AsyncTask<Void, Void, VM>() {
+          @Override
+          protected VM doInBackground(Void... params) {
+            // Naming the AsyncTask via Xion's answer to this SO question:
+            // http://stackoverflow.com/questions/7585426/android%ADidentify%ADwhat%ADcode%ADan%ADasynctask%ADis%ADrunning2/2
+            Thread.currentThread().setName("Simple (AsyncTask)");
+            if (adaptableViewModel.getViewModel() != null) {
+              // another task must have beat me to adapting. (the item was
+              // scrolled onto screen, I was created, the item was scrolled off
+              // and back on, another duplicate task was added to the top of the
+              // queue, that task finished, then I got executed.)
 
-          return actualAdapter.adapt(adaptableViewModel.adaptable);
-        }
+              return adaptableViewModel.getViewModel();
+            }
+            // this could still be a duplicate, concurrent job. oh well.
 
-        @Override
-        protected void onPostExecute(VM viewModel) {
-          // save the adapted model to the AdaptableViewModel so it's available
-          // if it's requested again
-          adaptableViewModel.setViewModel(viewModel);
-          if (loadingViewHolder.getTag() == adaptableViewModel) {
-            onViewModelReadyForViewHolder(loadingViewHolder, viewModel);
+            return actualAdapter.adapt(adaptableViewModel.adaptable);
           }
-        }
-      }.executeOnExecutor(executorService);
+
+          @Override
+          protected void onPostExecute(VM viewModel) {
+            // save the adapted model to the AdaptableViewModel so it's available
+            // if it's requested again
+            adaptableViewModel.setViewModel(viewModel);
+            if (loadingViewHolder.getTag() == adaptableViewModel) {
+              onViewModelReadyForViewHolder(loadingViewHolder, viewModel);
+            }
+            mTask = null;
+          }
+
+          @Override
+          protected void onCancelled(){
+            mTask = null;
+          }
+
+        }.executeOnExecutor(executorService);
+      }
     }
 
     // let implementation now do actual binding.
     assert viewModel != null;
     onBindViewHolder(loadingViewHolder, viewModel, position);
   } // onBindViewHolder()
+
 
 
 
