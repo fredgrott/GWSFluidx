@@ -1,4 +1,20 @@
-package com.github.shareme.gwsfluidx.binding.simple;
+/*
+  Copyright (C) 2016 Robert LaThanh
+  Modifications Copyright(C) 2016 Fred Grott (GrottWorkShop)
+
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You may
+obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+either express or implied. See the License for the specific language
+governing permissions and limitations under License.
+ */
+package com.github.shareme.gwsfluidx.binding.adaptable;
 
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
@@ -11,36 +27,27 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A SimpleBindingAdapter that queues up unadapted items as they come into view.
- * So, when an item first comes into view, its View Model is {@code null} (and
- * a placeholder should be shown for the item).
- * Once adapting has completed, the ViewModel is given to the ViewHolder (if it
- * hasn't been recycled) to update the view.
- * The ViewModel is also saved for the next time the item is scrolled into view
- * again (so it can be shown immediately).
+ * A simple {@link AdaptableBindingAdapter} that submits an item for adapting
+ * when it comes into view.
  *
- * @param <A> {@inheritDoc}
- * @param <VM> {@inheritDoc}
- * @param <VH> {@inheritDoc}
- *
- * Created by fgrott on 9/9/2016.
+ * Created by fgrott on 8/21/2016.
  */
 @SuppressWarnings("unused")
-public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
-        VH extends RecyclerView.ViewHolder &
-                Taggable>
-        extends SimpleBindingAdapter<A, VM, VH>  {
+public abstract class AdaptOnDemandAdaptableBindingAdapter<VM,
+        AVM extends AdaptableViewModel<VM>,
+        VH extends RecyclerView.ViewHolder>
+        extends AdaptableBindingAdapter<VM, AVM, VH>  {
+
+  //== Operating fields =======================================================
 
   private final @NonNull
-  SimpleAdapter<VM, A> actualAdapter;
-
-
+  AdaptableAdapter<VM, AVM> adaptableAdapter;
   private final @NonNull
   ExecutorService executorService;
 
 
-  //== Constructors ===========================================================
 
+  //== Constructors ===========================================================
 
   /**
    * Constructor for providing a custom executor service. For example, one that
@@ -48,10 +55,10 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
    * longer to adapt but may have less impact on the UI.
    */
   @SuppressWarnings("unused")
-  public AdaptOnDemandSimpleBindingAdapter(
-          @NonNull SimpleAdapter<VM, A> actualAdapter,
+  public AdaptOnDemandAdaptableBindingAdapter(
+          @NonNull AdaptableAdapter<VM, AVM> adaptableAdapter,
           @NonNull ExecutorService executorService) {
-    this.actualAdapter = actualAdapter;
+    this.adaptableAdapter = adaptableAdapter;
     this.executorService = executorService;
   }
 
@@ -63,9 +70,9 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
    * adapted later. The number of threads it uses is up to double the number of
    * CPUs ({@code numCpus * 2 + 1}).
    */
-  public AdaptOnDemandSimpleBindingAdapter(
-          @NonNull SimpleAdapter<VM, A> actualAdapter) {
-    this.actualAdapter = actualAdapter;
+  public AdaptOnDemandAdaptableBindingAdapter(
+          @NonNull AdaptableAdapter<VM, AVM> adaptableAdapter) {
+    this.adaptableAdapter = adaptableAdapter;
 
     // queue size must be at least as large as the number of items possibly on
     // the screen
@@ -85,22 +92,13 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
 
   //== 'RecyclerView.Adapter' methods =========================================
 
-  /**
-   * So what happens in cae of a concurrent same task?
-   *
-   *
-   *
-   * @param loadingViewHolder the loadingViewHolder
-   * @param position the scroller position
-   */
   @Override
-  public void onBindViewHolder(final VH loadingViewHolder,
+  public void onBindViewHolder(@NonNull final VH loadingViewHolder,
                                int position) {
-    final AdaptableViewModel<A, VM> adaptableViewModel = items.get(position);
-    VM viewModel = adaptableViewModel.getViewModel();
-    loadingViewHolder.setTag(adaptableViewModel);
+    final AVM adaptableViewModel = get(position);
+    final VM adapted = adaptableViewModel.getViewModel();
 
-    if (viewModel == null) {
+    if (adapted == null) {
       // item not yet adapted. start task to make this view available
       new AsyncTask<Void, Void, VM>() {
         @Override
@@ -113,28 +111,21 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
             return adaptableViewModel.getViewModel();
           }
           // this could still be a duplicate, concurrent job. oh well.
-
-          return actualAdapter.adapt(adaptableViewModel.adaptable);
+          return adaptableAdapter.adapt(adaptableViewModel);
         }
 
         @Override
         protected void onPostExecute(VM viewModel) {
-          // save the adapted model to the AdaptableViewModel so it's available
+          // save the adapted model to the adaptableViewModel so it's available
           // if it's requested again
           adaptableViewModel.setViewModel(viewModel);
-          if (loadingViewHolder.getTag() == adaptableViewModel) {
-            onViewModelReadyForViewHolder(loadingViewHolder, viewModel);
-          }
         }
       }.executeOnExecutor(executorService);
     }
 
     // let implementation now do actual binding.
-    assert viewModel != null;
-    onBindViewHolder(loadingViewHolder, viewModel, position);
+    onBindViewHolder(loadingViewHolder, adaptableViewModel, position);
   } // onBindViewHolder()
-
-
 
 
 }
