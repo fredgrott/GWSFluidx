@@ -76,6 +76,21 @@ public abstract class BaseApplication extends Application {
 
   public DroidUuidFactory myUUId;
 
+  /**
+   * you set this appTag to a string so that all through the
+   * app any time you use a Timber log wrapper call it will
+   * have the appTag label prefix.
+   */
+  public String appTag;
+
+  /**
+   * The domain string for invokeLogActivity feature of topExceptionSetup,
+   * you need to set this if you use that feature of the topExceptionSetup.
+   * It must match android:name in activity meta and intentiflter meta in
+   * your Android Manifest.
+   */
+  public String invokeLogActivityDomain = "com.mydomain.SendLog";
+
   @Override
   public void onCreate() {
     super.onCreate();
@@ -98,7 +113,7 @@ public abstract class BaseApplication extends Application {
       Timber.plant(new Timber.DebugTree(){
         @Override
         protected void log(int priority, String tag, String message, Throwable t) {
-          super.log(priority, "AppDemo" + tag, message, t);
+          super.log(priority, appTag + tag, message, t);
         }
 
       });
@@ -200,7 +215,7 @@ public abstract class BaseApplication extends Application {
    */
   private void invokeLogActivity(){
     Intent intent = new Intent ();
-    intent.setAction ("com.mydomain.SEND_LOG");
+    intent.setAction (invokeLogActivityDomain);
     intent.setFlags (Intent.FLAG_ACTIVITY_NEW_TASK);
     startActivity (intent);
 
