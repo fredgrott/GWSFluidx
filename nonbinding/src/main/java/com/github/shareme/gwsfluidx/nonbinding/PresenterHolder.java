@@ -1,6 +1,6 @@
-package com.github.shareme.gwsfluidx.binding;
+package com.github.shareme.gwsfluidx.nonbinding;
 
-import com.github.shareme.gwsfluidx.binding.presenter.Presenter;
+import com.github.shareme.gwsfluidx.nonbinding.presenter.Presenter;
 
 import java.util.HashMap;
 import java.util.Map;
