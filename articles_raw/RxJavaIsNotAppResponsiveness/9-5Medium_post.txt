@@ -1,0 +1,122 @@
+RxJava is not AppResponsiveness
+
+There is a myth out there that RxJava in-of-itslef can bring App Responsiveness to an Android App, however its not true. I am going to show you a new App Architecture that you can use to bring AppResopnsiveness to Android without using RxJava or Agera.
+
+What Do I mean by App Responsiveness? Basically, the app responding to the user with no pausing of the user interface.
+
+First, let me thank HisNAme and his authoring of the android-mvp-framework which can be found on github at:
+
+
+
+he came up with the riginal concept and code. 
+
+I have cleaned up the code and have soft forked hisName's code at the project GWSFludix which is at github:
+
+
+
+I would like to thank these additional people for their past technical postings on the subject; Dianne Hackborn(Google-AndroidTeam), Chet Haase(Google_AndroidTeam), Romain Guy(Google AndroidTeam-Haredware Acceleration), Bob Lee(CrazyBob, former CTO of Square and fromer lead Android on the Android Library), and Eugenio Marlettie(Android GDE and Lead engineer at Clue).
+
+BACKGROUND BASICS
+
+WHAT IS APP RESPONSIVENESS?
+
+App Responsiveness for an Android App  is composed of these things:
+
+1. Decreasing or elimination of GC pauses that pause the user interface responsiveness.
+
+2. Non-UI tasks such as backgtround tasks do not cause pausing of the user interface.
+
+
+3. Smooth scrolling of lists, girds, etc.
+
+
+Item one is easy as there are tools that auto-create immutables from mutable models which in turn because they turn our model into immutables from mutables decrease GC passes from 2 fro every mutable model to one per immutable model. The tool I use for my models is called AutoValue.
+
+Item two only appears in heavy-complex android applications. And the usual solution is to adopt using a heavy thread framework on top of the android thread primitives that are already supplied by the android framework. At the moment we have two tools, RxJava and Agera(from the Google Music Apps). 
+
+Item three, is the easiest as its the most noticeable that all android app users identify as it has real visible signs if we have smooth scrolling or not. And Android GDEs and Google Android Team Engineers have always recommended off-loading of tasks off of the UI-thread to get smooth scrolling and other app responsive features. In this article I show an app architecture strategy for doing exacty that.
+
+
+
+TWO HARDWARE RENDERING MECHANISMS
+
+
+Android 4.x has one UI thread that handles both RENDERING, SCROLLING, and ANIMATION OF VIEWS.  While Android 5.x and later switch rendering UI duties and UI Material Animation duties to a new RenderThread but still have SCROLLING on the UI thread.
+
+This is why when targeting both Android 4.x and Android 5.x and beyond that one has to reduce the view animations to only the ones absolutely needed as otherwise its not a smootH UI experience on Android 4.x devices.
+
+Because scrolling is the common feature that is on the same UI thread in both Android 4.x and Android 5.x and beyond devices we can use smooth scrolling as a sign of App Responsiveness.
+
+
+RECYCLERVIEW CHANGED EVERYTHING, NOT QUITE
+
+
+RC_adapater-VH-diagram
+
+
+
+
+
+
+As you can see RecyclerView introduced some new things such as ViewHoldeers, but we are going to concern ourselves with the adapter, which BTW, has both the adapting of data from the data source and the binding to view on the UI THREAD. We know this as the main thread in the Android Framework is in-fact the UI thread and we see no thread primitives being used in the RecyclerView source code to off-load anything off of the UI thread. Unfortunately this is the same as the ListView, GridView, etc that RecyclerView was designed to reaplace.
+
+
+
+
+
+
+
+
+MVC-MVP_MVVM diagram
+
+
+
+
+As you can see updating of the view for both MVP and MVVM is the same and MVC it is handled by a different entity. Thus, the particular APP Architecgture Framework both android-mvp-framwork and my own soft foked version, GWSFluidx, only work with MVP and MVVM.
+
+
+We will be maing use of someof the Android Thread primitives, mainly AsyncTask. Remember, AsyncTask allows us to off-load a task to the non-UI thread and executes on the UI thread in a non-parallel fashion. AsyncTask is meant for tasks that are breif in theri time to completion, which makes it perfect to off-load some stuff off of the UI-thread for certain use cases of an application architcture pattern.
+
+
+
+
+THE CONCEPT
+
+The concept is somewhat keeping it simple and conforming to the GDE and other informed devlopers advice of off-loaidng stuff off of the UI thread.  So let's break down what the RecyclerView Adapter does:
+
+1. Adapts the data into some format.
+2. Binds the adapted data to a view
+
+Obviously, the binding part means that part of the adapter is on the UI thread.  but, on examinging the RecyclerView source one sees that the adapting part is also on the UI thread.
+
+If I off-load the adapting part and the object creation of the view-model than that servers to NOT BLOCK THE UI THREAD DURING SCROLLING.
+
+We go a little further in that we display one piece of info first before rest of the data-source set is downlaoded in order to enhance the user's perception of AppResponsiveness in that they can see one piece of information right away.
+
+That is the simple concept. How about we take a look at some code and the bascis of using AsyncTask to off-load stuff off of the UI thread?
+
+A CODE SAMPLE
+
+I am going to show what is called a simple adapter(the app architecture framework has 3 groups of adapaters, simple, adaptable, and presenter) that in concept one does not customize but just simply initializes and call to implement the adapting side of RecyclerView in your Android Applciation.
+
+
+
+
+
+
+
+
+REFERENCES
+
+
+1. Understanding The Render Thread, by Eugeniio Marletti published on Medium.com
+
+2. The Truth about Android and iOS UI Performance, by Bob Lee published on crazybob.org
+
+3. A few days ago, by Dianne Hackborn as a Google+ post published on Google+
+
+4.                , by Dianne Hackborn as a Google+ post published on Google+
+
+
+Some of you will note the absence of the Andrew Munn post and that is due to Andrew Munn getting both cause of laggy UI on android and iOS wrong and how each UI works somewhat wrong. Thus, it has been excluded from the references due to those imperfections.
+
