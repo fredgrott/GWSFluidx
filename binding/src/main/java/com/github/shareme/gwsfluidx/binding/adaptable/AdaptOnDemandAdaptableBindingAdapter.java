@@ -143,7 +143,8 @@ public abstract class AdaptOnDemandAdaptableBindingAdapter<VM,
           protected void onCancelled(){
             mTask = null;
           }
-        }.executeOnExecutor(executorService);
+        };
+        mTask.executeOnExecutor(executorService);
       }
     }
 

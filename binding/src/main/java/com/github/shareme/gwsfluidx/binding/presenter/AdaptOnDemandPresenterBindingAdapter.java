@@ -131,7 +131,8 @@ public abstract class AdaptOnDemandPresenterBindingAdapter<VM,
         protected void onCancelled(){
           mTask = null;
         }
-      }.executeOnExecutor(executorService);
+      };
+      mTask.executeOnExecutor(executorService);
     }
   }
 

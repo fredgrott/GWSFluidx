@@ -145,7 +145,8 @@ public abstract class AdaptOnDemandSimpleBindingAdapter<A, VM,
             mTask = null;
           }
 
-        }.executeOnExecutor(executorService);
+        };
+        mTask.executeOnExecutor(executorService);
       }
     }
 
