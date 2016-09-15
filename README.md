@@ -23,7 +23,7 @@ and this framework provides the tools to do that with MVP-VM and MVVM patterns.
 
 1. No, you cannot use the MVC pattern with this framework(not really a con though). 
 
-2. You might not be use to a fully de-coupled presenter pattern.
+2. You might not be use to a fully de-coupled presenter pattern, its a thinking change.
 
 3. You have to and should use immutables instead of mutables.
 
@@ -59,7 +59,19 @@ architecture and implementation choices such as off-loading expensive tasks off
 of the UI-thread, btw which every Android GDE and Google Android Team member 
 recommends.
 
+# TODO/ChangeLog
 
+0.0.1  First release with the core features of separating adapting from binding. Some RV 
+       extensions included.
+       
+0.0.2  Adding the feature of using multiple view types.
+
+# RECOMMENDED TOOLS TO USE WITH GWSFLUIDX FRAMEWORK
+
+1. AutoValue to convert your mutable models ot immutables
+
+2. SoundCloud's LightCycle to slim down activity and fragment code 
+   via composite module enabling code.
    
    
    
@@ -67,9 +79,11 @@ recommends.
 
 Articles explaining the architecture can be found at:
 
-# WIKI
+# DOCS
 
-Start at these wiki pages for docs:
+Docs starting point is the gh-pages for the project:
+
+[Docs](https://shareme.github.com/GWSFluidx/)
 
 
 
@@ -118,6 +132,10 @@ added some docs and articles to explain how to use it. I also expanded it
 so that one does not have the Google Data Binding library if one wants to 
 use it without that library and provide your own binding via either 
 RxJava or Agera.
+
+Other added stuff includes router functionality to help slim down activities 
+and fragments to read-able biz logic code. And added RV extensions such as 
+pre-cahcing of pages/screens.
 
 
 # Resources
