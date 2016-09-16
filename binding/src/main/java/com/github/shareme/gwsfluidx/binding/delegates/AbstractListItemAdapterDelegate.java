@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2015 Hannes Dorfmann.
+ * Modifications Copyright(C) 2016 Fred Grott(GrottWorkShop)
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package com.github.shareme.gwsfluidx.binding.delegates;
+
+import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
+import android.view.ViewGroup;
+
+import java.util.List;
+
+/**
+ * A simplified {@link AbstractDelegationAdapter} when the underlying adapter's dataset is a  {@linkplain
+ * List}. This class helps to reduce writing boilerplate code like casting list item and casting
+ * ViewHolder.
+ *
+ * <p>
+ * For instance if you have a list of animals (different kind of animals in classes like Cat, Dog
+ * etc. assuming all have a common super class Animal) you want to display in your adapter and
+ * you want to create a CatAdapterDelegate then this class would look like this:
+ * {@code
+ * class CatAdapterDelegate extends AbsListItemAdapterDelegate<Cat, Animal, CatViewHolder>{
+ *
+ *    @Override
+ *    protected boolean isForViewType(Animal item, List<Animal> items, position){
+ *      return item instanceof Cat;
+ *    }
+ *
+ *    @Override
+ *    public CatViewHolder onCreateViewHolder(ViewGroup parent){
+ *      return new CatViewHolder(inflater.inflate(R.layout.item_cat, parent, false));
+ *    }
+ *
+ *    @Override
+ *    protected void onBindViewHolder(Cat item, CatViewHolder viewHolder);
+ *        viewHolder.setName(cat.getName());
+ *        ...
+ *    }
+ * }
+ *
+ * }
+ * </p>
+ *
+ * @param <I> The type of the item that is managed by this AdapterDelegate. Must be a subtype of T
+ * @param <T> The generic type of the list, in other words: {@code List<T>}
+ * @param <VH> The type of the ViewHolder
+ *
+ * Created by fgrott on 9/16/2016.
+ */
+@SuppressWarnings("unused")
+public abstract class AbstractListItemAdapterDelegate<I extends T, T, VH extends RecyclerView.ViewHolder>
+        implements AdapterDelegate<List<T>> {
+
+  @Override
+  public final boolean isForViewType(@NonNull List<T> items, int position) {
+    return isForViewType(items.get(position), items, position);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public final void onBindViewHolder(@NonNull List<T> items, int position,
+                                               @NonNull RecyclerView.ViewHolder holder) {
+    onBindViewHolder((I) items.get(position), (VH) holder);
+  }
+
+  /**
+   * Called to determine whether this AdapterDelegate is the responsible for the given item in the list or not
+   * element
+   * @param item The item from the list at the given position
+   * @param items The items from adapters dataset
+   * @param position The items position in the dataset (list)
+   * @return true if this AdapterDelegate is responsible for that, otherwise false
+   */
+  protected abstract boolean isForViewType(@NonNull T item, List<T> items, int position);
+
+  /**
+   * Creates the  {@link RecyclerView.ViewHolder} for the given data source item
+   * @param parent The ViewGroup parent of the given datasource
+   * @return ViewHolder
+   */
+  @NonNull
+  @Override
+  public abstract VH onCreateViewHolder(@NonNull ViewGroup parent);
+
+  /**
+   * Called to bind the {@link RecyclerView.ViewHolder} to the item of the dataset
+   * @param item The data item
+   * @param viewHolder The ViewHolder
+   */
+  protected abstract void onBindViewHolder(@NonNull I item, @NonNull VH viewHolder);
+}
