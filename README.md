@@ -3,6 +3,11 @@
 GWSFluidx
 =========
 
+
+<b>DEPRECIATED see GWSFluidArch project:</b>
+
+[GWSFluidArch](https://github.com/shareme/GWSFluidArch)
+
 There are several myths about developing android applications, with one 
 of those myths being that rxJava gives you App Responsiveness by default.
 In-fact it does not.
